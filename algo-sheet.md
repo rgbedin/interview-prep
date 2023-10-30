@@ -1168,3 +1168,131 @@ function areRectanglesOverlapping(rect1: Rectangle, rect2: Rectangle): boolean {
     return true; // If none of the above cases occurred, rectangles are overlapping
 }
 ```
+
+# Notorious Problems
+
+## Robot Room Cleaner
+Link: https://leetcode.com/problems/robot-room-cleaner/description/
+
+```javascript
+/**
+ * class Robot {
+ *      // Returns true if the cell in front is open and robot moves into the cell.
+ *      // Returns false if the cell in front is blocked and robot stays in the current cell.
+ * 		move(): boolean {}
+ * 		
+ *      // Robot will stay in the same cell after calling turnLeft/turnRight.
+ *      // Each turn will be 90 degrees.
+ * 		turnRight() {}
+ * 		
+ *      // Robot will stay in the same cell after calling turnLeft/turnRight.
+ *      // Each turn will be 90 degrees.
+ * 		turnLeft() {}
+ * 		
+ * 		// Clean the current cell.
+ * 		clean(): {}
+ * }
+ */
+
+function cleanRoom(robot: Robot) {
+    const dirs = [[-1, 0], [0, 1], [1, 0], [0, -1]];
+    const visited = new Set();
+
+    const goBack = () => {
+        robot.turnRight();
+        robot.turnRight();
+        robot.move();
+        robot.turnRight();
+        robot.turnRight();
+    }
+
+    const backtrack = (row: number, col: number, d: number) => {
+        visited.add([row, col].join());
+        robot.clean();
+
+        for (let i = 0; i < 4; ++i) {
+            const newD = (d + i) % 4;
+            const [newRow, newCol] = [row + dirs[newD][0], col + dirs[newD][1]];
+
+            if (!visited.has([newRow, newCol].join()) && robot.move()) {
+                backtrack(newRow, newCol, newD);
+                goBack();
+            }
+
+            robot.turnRight();
+        }
+    }
+
+    backtrack(0, 0, 0);
+};
+```
+
+## Kadane's Algorithm
+
+Kadane's algorithm is used to find the maximum sum of a contiguous subarray within a one-dimensional array of numbers.
+
+```javascript
+function maxSubArraySum(arr: number[]): number {
+    if (arr.length === 0) {
+        return 0;
+    }
+
+    let maxCurrent = arr[0];
+    let maxGlobal = arr[0];
+
+    for (let i = 1; i < arr.length; i++) {
+        maxCurrent = Math.max(arr[i], maxCurrent + arr[i]);
+        maxGlobal = Math.max(maxGlobal, maxCurrent);
+    }
+
+    return maxGlobal;
+}
+
+// Example usage:
+const numbers = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+console.log(maxSubArraySum(numbers));  // Outputs: 6 (because [4, -1, 2, 1] has the largest sum)
+```
+
+If you want to track the start and end indices of the subarray with the largest sum, you can use the following code:
+
+```javascript
+function maxSubArraySumWithIndices(arr: number[]): { sum: number, start: number, end: number } {
+    if (arr.length === 0) {
+        return { sum: 0, start: -1, end: -1 };
+    }
+
+    let maxCurrent = arr[0];
+    let maxGlobal = arr[0];
+
+    let start = 0;
+    let end = 0;
+    let tempStart = 0;
+
+    for (let i = 1; i < arr.length; i++) {
+        if (arr[i] > maxCurrent + arr[i]) {
+            maxCurrent = arr[i];
+            tempStart = i;
+        } else {
+            maxCurrent += arr[i];
+        }
+
+        if (maxCurrent > maxGlobal) {
+            maxGlobal = maxCurrent;
+            start = tempStart;
+            end = i;
+        }
+    }
+
+    return { sum: maxGlobal, start: start, end: end };
+}
+
+// Example usage:
+const numbers = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+const result = maxSubArraySumWithIndices(numbers);
+console.log(`Max sum is: ${result.sum} from index ${result.start} to ${result.end}`);  
+// Outputs: Max sum is: 6 from index 3 to 6 (because [4, -1, 2, 1] has the largest sum)
+```
+
+## Great Explanation of Dynamic Programming (DP)
+
+- https://leetcode.com/problems/word-break-ii/editorial/
