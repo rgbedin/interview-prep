@@ -1296,3 +1296,388 @@ console.log(`Max sum is: ${result.sum} from index ${result.start} to ${result.en
 ## Great Explanation of Dynamic Programming (DP)
 
 - https://leetcode.com/problems/word-break-ii/editorial/
+
+## Disjoint Union Set (DSU)
+
+```javascript
+/*
+Return the lexicographically smallest string that s can be changed to after using the swaps.
+
+Input: s = "dcab", pairs = [[0,3],[1,2]]
+Swap s[0] and s[3], s = "bcad"
+Swap s[1] and s[2], s = "bacd"
+
+Input: s = "cba", pairs = [[0,1],[1,2]]
+Swap s[0] and s[1], s = "bca"
+Swap s[1] and s[2], s = "bac"
+Swap s[0] and s[1], s = "abc"
+
+Input: s = "cbfdae", pairs = [[0,1],[3,2],[5,2],[1,4]]
+Output: "abdecf"
+*/
+function smallestStringWithSwaps(s: string, pairs: number[][]): string {
+    const parent: number[] = [];
+    for (let i = 0; i < s.length; i++) {
+        parent[i] = i;
+    }
+
+    // Find the parent of a node
+    function find(i: number): number {
+        if (i !== parent[i]) {
+            parent[i] = find(parent[i]);
+        }
+        return parent[i];
+    }
+
+    // Union the two nodes
+    function union(i: number, j: number) {
+        parent[find(i)] = find(j);
+    }
+
+    // Create the disjoint set using the pairs
+    for (let [i, j] of pairs) {
+        union(i, j);
+    }
+
+    // Create mapping of root -> [indices]
+    const indexGroups: { [key: number]: number[] } = {};
+    for (let i = 0; i < s.length; i++) {
+        const root = find(i);
+        if (!indexGroups[root]) {
+            indexGroups[root] = [];
+        }
+        indexGroups[root].push(i);
+    }
+
+    let chars: string[] = s.split('');
+    for (let indices of Object.values(indexGroups)) {
+        const sortedChars = indices.map(i => chars[i]).sort();
+        for (let i = 0; i < indices.length; i++) {
+            chars[indices[i]] = sortedChars[i];
+        }
+    }
+
+    return chars.join('');
+}
+
+// Test cases
+console.log(smallestStringWithSwaps("dcab", [[0, 3], [1, 2]])); // "bacd"
+console.log(smallestStringWithSwaps("cba", [[0, 1], [1, 2]]));  // "abc"
+console.log(smallestStringWithSwaps("cbfdae", [[0, 1], [3, 2], [5, 2], [1, 4]])); // "abdecf"
+
+```
+
+Let's dry run the `smallestStringWithSwaps` function with the input string `s = "dcab"` and pairs `[[0,3],[1,2]]`.
+
+**Initialization**:
+```typescript
+const parent: number[] = [];
+for (let i = 0; i < s.length; i++) {
+    parent[i] = i;
+}
+```
+This initializes each character's index as its own parent:
+`parent = [0, 1, 2, 3]`
+
+**Processing the pairs using union**:
+
+1. For the pair `[0,3]`:
+   - The union function merges the sets containing `0` and `3`.
+   - `parent` becomes: `[3, 1, 2, 3]`
+
+2. For the pair `[1,2]`:
+   - The union function merges the sets containing `1` and `2`.
+   - `parent` becomes: `[3, 2, 2, 3]`
+
+**Create mapping of root to its indices**:
+We want to know which indices belong to which set. 
+```typescript
+const indexGroups: { [key: number]: number[] } = {};
+for (let i = 0; i < s.length; i++) {
+    const root = find(i);
+    if (!indexGroups[root]) {
+        indexGroups[root] = [];
+    }
+    indexGroups[root].push(i);
+}
+```
+After this loop, `indexGroups` becomes:
+```
+{
+    3: [0, 3],
+    2: [1, 2]
+}
+```
+This means characters at indices `0` and `3` can be swapped with each other, and characters at indices `1` and `2` can be swapped with each other.
+
+**Reorder characters within each set**:
+We want the characters in each group to be sorted in ascending order to make the string lexicographically smallest.
+```typescript
+let chars: string[] = s.split('');
+for (let indices of Object.values(indexGroups)) {
+    const sortedChars = indices.map(i => chars[i]).sort();
+    for (let i = 0; i < indices.length; i++) {
+        chars[indices[i]] = sortedChars[i];
+    }
+}
+```
+1. For `indices = [0, 3]` (i.e., characters `'d'` and `'b'`):
+   - Sort them to get `'b'` and `'d'`.
+   - Update the characters in `chars` to reflect the new order: `chars` becomes `['b', 'c', 'a', 'd']`.
+
+2. For `indices = [1, 2]` (i.e., characters `'c'` and `'a'`):
+   - Sort them to get `'a'` and `'c'`.
+   - Update the characters in `chars` to reflect the new order: `chars` becomes `['b', 'a', 'c', 'd']`.
+
+**Return the modified string**:
+The final step is to join the `chars` array:
+```typescript
+return chars.join('');
+```
+This returns the string `"bacd"`.
+
+So, for the input `s = "dcab"` and pairs `[[0,3],[1,2]]`, the function `smallestStringWithSwaps` returns the string `"bacd"`.
+
+## Monotonic Stack
+
+A monotonic stack is a type of stack that maintains a certain monotonicity property as elements are pushed into it. Depending on the problem at hand, this might be a strictly increasing or strictly decreasing stack. In other words, when you push a new element onto the stack, the stack ensures that its elements are still in either non-decreasing or non-increasing order by potentially popping off the elements that violate the monotonicity.
+
+The primary purpose of a monotonic stack is to efficiently answer questions like:
+
+- For each element in an array, what's the nearest smaller (or larger) element on the left or right of it?
+- Finding the maximum rectangle in a histogram.
+
+Let's dive into an example:
+
+**Problem Statement:**
+Given an array of numbers, for each element, find the first larger number to its right.
+
+**Example:**
+Input: `[4, 3, 2, 5, 1]`
+Output: `[5, 5, 5, -1, -1]`
+
+**Explanation:** 
+For `4`, the next larger number is `5`.
+For `3`, the next larger number is `5`.
+For `2`, the next larger number is `5`.
+For `5`, there is no larger number, hence `-1`.
+For `1`, there is no larger number, hence `-1`.
+
+**Typescript Solution using Monotonic Stack:**
+```typescript
+function nextLargerElement(nums: number[]): number[] {
+    const result: number[] = Array(nums.length).fill(-1); // initialize result array with -1s
+    const stack: number[] = []; // this will store indices
+
+    for (let i = 0; i < nums.length; i++) {
+        while (stack.length && nums[i] > nums[stack[stack.length - 1]]) {
+            const idx = stack.pop() as number; // get the last index from the stack
+            result[idx] = nums[i]; // we found the next greater element for the element at index `idx`
+        }
+        stack.push(i); // push the current index to the stack
+    }
+
+    return result;
+}
+
+// Testing the function
+const input = [4, 3, 2, 5, 1];
+console.log(nextLargerElement(input)); // Expected output: [5, 5, 5, -1, -1]
+```
+
+In this solution, we're keeping the stack in non-decreasing order. When a larger number is found, we keep popping from the stack until we find a number that's greater than the current one or the stack becomes empty. This helps in finding the next larger number for all the numbers that are smaller than the current number.
+
+## Peak Valley (Arrays)
+
+You are given an integer array prices where prices[i] is the price of a given stock on the ith day.
+
+On each day, you may decide to buy and/or sell the stock. You can only hold at most one share of the stock at any time. However, you can buy it then immediately sell it on the same day.
+
+Find and return the maximum profit you can achieve.
+
+```
+Input: prices = [7,1,5,3,6,4]
+Output: 7
+Explanation: Buy on day 2 (price = 1) and sell on day 3 (price = 5), profit = 5-1 = 4.
+Then buy on day 4 (price = 3) and sell on day 5 (price = 6), profit = 6-3 = 3.
+Total profit is 4 + 3 = 7.
+```
+
+```javascript
+class Solution {
+    public int maxProfit(int[] prices) {
+        int i = 0;
+        int valley = prices[0];
+        int peak = prices[0];
+        int maxprofit = 0;
+        while (i < prices.length - 1) {
+            while (i < prices.length - 1 && prices[i] >= prices[i + 1])
+                i++;
+            valley = prices[i];
+            while (i < prices.length - 1 && prices[i] <= prices[i + 1])
+                i++;
+            peak = prices[i];
+            maxprofit += peak - valley;
+        }
+        return maxprofit;
+    }
+}
+```
+
+## Dijkstra's algorithm
+
+### Explanation:
+Dijkstra's algorithm is a graph search algorithm that solves the single-source shortest path problem for a graph with non-negative edge path costs, producing the shortest path tree. This algorithm is often used in routing and as a subroutine in other graph algorithms.
+
+Here are the basic steps:
+
+1. **Initialization**: 
+   - Set a tentative distance value for every node: set the initial node's distance to zero and all other nodes' distance to infinity. 
+   - Set the initial node as the current node.
+   - Mark all nodes as unvisited. Create a set of all the unvisited nodes.
+
+2. **Main loop**:
+   - For the current node, consider all of its neighbors and calculate their tentative distances through the current node. Compare the newly calculated tentative distance to the current assigned value and update the distance if the new value is smaller.
+   - Once you have considered all of the neighbors of the current node, mark the current node as visited. A visited node will not be checked again.
+   - Select the unvisited node with the smallest tentative distance, and set it as the new current node. Then go back to the previous step.
+
+3. **Completion**:
+   - The algorithm ends when every node has been visited. The algorithm has now constructed the shortest path tree from the source node to all other nodes.
+
+### TypeScript Implementation:
+```typescript
+type Graph = {
+    [key: string]: { [key: string]: number };
+};
+
+const dijkstra = (graph: Graph, start: string): { distances: { [key: string]: number }, previous: { [key: string]: string | null } } => {
+    let distances: { [key: string]: number } = {};
+    let previous: { [key: string]: string | null } = {};
+    let unvisitedNodes = Object.keys(graph);
+
+    for (let node of unvisitedNodes) {
+        distances[node] = Infinity;
+        previous[node] = null;
+    }
+    distances[start] = 0;
+
+    while (unvisitedNodes.length !== 0) {
+        unvisitedNodes.sort((a, b) => distances[a] - distances[b]);
+        let currentNode = unvisitedNodes.shift() as string;
+
+        for (let neighbor in graph[currentNode]) {
+            let newDistance = distances[currentNode] + graph[currentNode][neighbor];
+
+            if (newDistance < distances[neighbor]) {
+                distances[neighbor] = newDistance;
+                previous[neighbor] = currentNode;
+            }
+        }
+    }
+    return { distances, previous };
+};
+
+// Example Usage:
+const exampleGraph: Graph = {
+    A: { B: 1, D: 3 },
+    B: { A: 1, D: 2, E: 5 },
+    D: { A: 3, B: 2, E: 1 },
+    E: { B: 5, D: 1 },
+};
+
+let result = dijkstra(exampleGraph, "A");
+console.log(result.distances);
+console.log(result.previous);
+```
+
+### Dry Run:
+Let's dry run the algorithm using the `exampleGraph`:
+
+1. **Initialization**: 
+   - `distances = { A: 0, B: Infinity, D: Infinity, E: Infinity }`
+   - `previous = { A: null, B: null, D: null, E: null }`
+   - Current node = `A`
+   - Unvisited nodes = `A, B, D, E`
+
+2. **First Iteration**:
+   - Current Node: `A`
+   - Neighbors: `B` and `D`
+     - For `B`: New distance = `0 + 1 = 1`, which is less than `Infinity`
+       - `distances[B] = 1`, `previous[B] = A`
+     - For `D`: New distance = `0 + 3 = 3`, which is less than `Infinity`
+       - `distances[D] = 3`, `previous[D] = A`
+   - Mark `A` as visited.
+   - New current node = `B` (smallest distance among unvisited nodes)
+
+3. **Second Iteration**:
+   - Current Node: `B`
+   - Neighbors: `A`, `D`, and `E`
+     - For `D`: New distance = `1 + 2 = 3`, which is not less than current `3`
+     - For `E`: New distance = `1 + 5 = 6`, which is less than `Infinity`
+       - `distances[E] = 6`, `previous[E] = B`
+   - Mark `B` as visited.
+   - New current node = `D` (smallest distance among unvisited nodes)
+
+4. **Third Iteration**:
+   - Current Node: `D`
+   - Neighbors: `A`, `B`, and `E`
+     - For `E`: New distance = `3 + 1 = 4`, which is less than current `6`
+       - `distances[E] = 4`, `previous[E] = D`
+   - Mark `D` as visited.
+   - New current node = `E` (last unvisited node)
+
+5. **Fourth Iteration**:
+   - Current Node: `E`
+   - No updates since all neighbors have been visited.
+   - Mark `E` as visited.
+
+**Completion**:
+`distances` = { A: 0, B: 1, D: 3, E: 4 }
+`previous` = { A: null, B: 'A', D: 'A', E: 'D' }
+
+The shortest path from A to E is `A -> B -> D -> E` with a distance of `4`.
+
+
+### Time and Space Complexity:
+
+Dijkstra's algorithm's time and space complexity are primarily influenced by the data structures used to implement it. The pseudocode provided earlier uses a basic array for the unvisited set and iterates over it to find the node with the smallest distance, which isn't the most efficient approach. Let's break down the complexities for the provided TypeScript implementation and then discuss how it can be optimized.
+
+### For the provided TypeScript implementation:
+
+**Time Complexity:**
+1. Initializing `distances`, `previous`, and `unvisitedNodes` is \(O(V)\), where \(V\) is the number of vertices.
+2. In the worst-case scenario, the `while` loop runs for every node, i.e., \(O(V)\).
+3. Inside the `while` loop, the `sort` operation is \(O(V \log V)\).
+4. Additionally, inside the `while` loop, we might go through all the edges of a node in the nested `for` loop, i.e., \(O(E)\) where \(E\) is the number of edges.
+
+Multiplying these together, the worst-case time complexity is:
+\[O(V \times (V \log V + E))\]
+This can be approximated as \(O(V^2 \log V)\) in dense graphs where \(E \approx V^2\) and \(O(V^2)\) in sparse graphs.
+
+**Space Complexity:**
+1. The `distances` and `previous` maps have space complexity \(O(V)\).
+2. The `unvisitedNodes` array also has space complexity \(O(V)\).
+
+Summing these up, the overall space complexity is:
+\[O(V)\]
+
+### Optimized Version using Priority Queue:
+
+You can optimize the time complexity by using a priority queue (or a binary heap) to manage the unvisited nodes. This would allow you to efficiently extract the node with the smallest tentative distance without having to sort the entire set of unvisited nodes each time.
+
+With this optimization:
+
+**Time Complexity:**
+1. Initialization is still \(O(V)\).
+2. The loop runs for every node and edge, i.e., \(O(V + E)\).
+3. Extracting the minimum node from a priority queue is \(O(\log V)\).
+
+Multiplying these together, the worst-case time complexity becomes:
+\[O((V + E) \log V)\]
+
+For a dense graph, this still reduces to \(O(V^2 \log V)\), but the constant factors are typically much better than the array-based approach. For sparse graphs, this is much faster, at \(O(V \log V)\).
+
+**Space Complexity:**
+The space complexity remains largely unchanged at \(O(V)\) for the data structures in the algorithm. However, if you include the priority queue's internal structures, it can go up slightly but remains within \(O(V)\) bounds.
+
+In summary, while the naive version can be quite slow for large graphs, using a priority queue can significantly speed up Dijkstra's algorithm.
