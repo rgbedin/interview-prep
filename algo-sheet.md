@@ -1681,3 +1681,72 @@ For a dense graph, this still reduces to \(O(V^2 \log V)\), but the constant fac
 The space complexity remains largely unchanged at \(O(V)\) for the data structures in the algorithm. However, if you include the priority queue's internal structures, it can go up slightly but remains within \(O(V)\) bounds.
 
 In summary, while the naive version can be quite slow for large graphs, using a priority queue can significantly speed up Dijkstra's algorithm.
+
+## Sorting
+
+### Quick Sort
+
+Quick Sort is a divide-and-conquer algorithm that works on the principle of choosing a 'pivot' element from the array and partitioning the other elements into two sub-arrays, according to whether they are less than or greater than the pivot. The sub-arrays are then sorted recursively.
+
+1. **Choose a Pivot**: Select an element from the array as the pivot. This can be done in various ways, such as choosing the first element, the last element, the middle element, or even a random element.
+
+2. **Partitioning**: Reorder the array so that all elements with values less than the pivot come before the pivot, while all elements with values greater than the pivot come after it. After this partitioning, the pivot is in its final position.
+
+3. **Recursive Sorting**: Recursively apply the above steps to the sub-array of elements with smaller values and the sub-array of elements with greater values.
+
+4. **Base Case**: The recursion base case is an array with zero or one element, which doesn't need to be sorted.
+
+Now, here's an example of Quick Sort implemented in TypeScript:
+
+```typescript
+function quickSort(arr: number[], low: number, high: number): void {
+  if (low < high) {
+    // Partition the array and get the pivot index
+    let pi = partition(arr, low, high);
+
+    // Recursively sort the elements before partition and after partition
+    quickSort(arr, low, pi - 1);
+    quickSort(arr, pi + 1, high);
+  }
+}
+
+function partition(arr: number[], low: number, high: number): number {
+  // Choose the rightmost element as pivot
+  let pivot = arr[high];
+
+  // Pointer for greater element
+  let i = low - 1;
+
+  // Traverse through all elements
+  // compare each element with pivot
+  for (let j = low; j < high; j++) {
+    if (arr[j] < pivot) {
+      // If element smaller than pivot is found
+      // swap it with the greater element pointed by i
+      i++;
+
+      // Swapping element at i with element at j
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+
+  // Swap the pivot element with the greater element specified by i
+  [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+
+  // Return the position from where partition is done
+  return i + 1;
+}
+
+// Helper function to initiate QuickSort
+function quickSortHelper(arr: number[]): number[] {
+  quickSort(arr, 0, arr.length - 1);
+  return arr;
+}
+
+// Example usage:
+const arr = [10, 7, 8, 9, 1, 5];
+console.log('Original Array:', arr);
+const sortedArray = quickSortHelper(arr);
+console.log('Sorted Array:', sortedArray);
+```
+
